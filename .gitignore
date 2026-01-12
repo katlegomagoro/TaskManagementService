@@ -1,0 +1,47 @@
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# Visual Studio cache/options
+.vs/
+
+# Logs
+*.log
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+
+# Coverage
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# Node
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db

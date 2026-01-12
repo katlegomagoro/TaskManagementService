@@ -1,0 +1,31 @@
+mode: ContinuousDelivery
+continuous-delivery-fallback-tag: ''
+
+assembly-versioning-scheme: MajorMinorPatch
+assembly-file-versioning-scheme: MajorMinorPatch
+assembly-informational-format: '{InformationalVersion}'
+
+branches:
+  main:
+    regex: ^main$
+    increment: Minor
+    is-main-branch: true
+    prevent-increment-of-merged-branch-version: true
+    source-branches: [ 'feature', 'bugfix', 'hotfix' ]
+
+  feature:
+    regex: ^feature[/-]
+    increment: Minor
+    source-branches: [ 'main' ]
+
+  bugfix:
+    regex: ^bugfix[/-]
+    increment: Patch
+    source-branches: [ 'main' ]
+
+  hotfix:
+    regex: ^hotfix[/-]
+    increment: Patch
+    source-branches: [ 'main' ]
+
+commit-message-incrementing: Enabled
