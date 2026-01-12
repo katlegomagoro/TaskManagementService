@@ -188,40 +188,25 @@ The UI contains no business logic and communicates with the backend via HTTP.
 - PostgreSQL running locally
 - Firebase project configured for authentication
 
-### Steps
+## Set Up the Project
 
-1. Clone the repository:
+1. Clone the repository
+2. Ensure `.NET 9 SDK` is installed
+3. Open the solution in Visual Studio 2022 or run from terminal:
 
 ```bash
-git clone git@github.com:katlegomagoro/TaskManagementService.git
-
-
-Open the solution in Visual Studio 2022
-
-Configure the database connection in appsettings.json
-
-Apply migrations:
-
+dotnet restore
 dotnet ef database update
+dotnet run --project ProductAdminPanel
+```
 
+Ensure your `appsettings.json` contains the following connection string:
 
-Run the API and Blazor projects
-
-Bonus Enhancements
-
-The solution is structured to easily support:
-
-Unit and integration tests
-
-Caching
-
-Role-based authorization
-
-Additional task metadata
-
-Background processing
-
-Author
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=localhost;Database=ProductAdminDb;Trusted_Connection=True;MultipleActiveResultSets=True;TrustServerCertificate=true"
+}
+```
 
 For feedback or collaboration inquiries, reach out via:
 
@@ -230,24 +215,3 @@ For feedback or collaboration inquiries, reach out via:
 
 **LinkedIn**: [linkedin.com/in/katlego-magoro-288b08236](https://www.linkedin.com/in/katlego-magoro-288b08236)
 
-
----
-
-If you want, next we can:
-- tighten this even more for **assessment reviewers**, or  
-- add a **short architecture diagram explanation section**, or  
-- move straight into **implementing the Task CQRS flow** (the most important scoring area).
-
-Just say what’s next.
-
-
-
-
----
-
-For feedback or collaboration inquiries, reach out via:
-
-**Name**: Katlego Magoro  
-**Email**: katlegomagoro98@gmail.com  
-
-**LinkedIn**: [linkedin.com/in/katlego-magoro-288b08236](https://www.linkedin.com/in/katlego-magoro-288b08236)
