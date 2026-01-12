@@ -223,10 +223,12 @@ Background processing
 
 Author
 
-Katlego Magoro
-Email: katlegomagoro98@gmail.com
+For feedback or collaboration inquiries, reach out via:
 
-LinkedIn: https://linkedin.com/in/katlego-magoro-288b08236
+**Name**: Katlego Magoro  
+**Email**: katlegomagoro98@gmail.com  
+
+**LinkedIn**: [linkedin.com/in/katlego-magoro-288b08236](https://www.linkedin.com/in/katlego-magoro-288b08236)
 
 
 ---
