@@ -239,3 +239,15 @@ If you want, next we can:
 - move straight into **implementing the Task CQRS flow** (the most important scoring area).
 
 Just say what’s next.
+
+
+
+
+---
+
+For feedback or collaboration inquiries, reach out via:
+
+**Name**: Katlego Magoro  
+**Email**: katlegomagoro98@gmail.com  
+
+**LinkedIn**: [linkedin.com/in/katlego-magoro-288b08236](https://www.linkedin.com/in/katlego-magoro-288b08236)
