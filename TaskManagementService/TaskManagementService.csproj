@@ -1,9 +1,33 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>TaskManagementService-LocalSecrets</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MudBlazor" Version="8.*" />
+		<PackageReference Include="Serilog.AspNetCore" Version="9.*" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="9.*" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.*" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.*" />
+
+		<PackageReference Include="MediatR" Version="12.*" />
+		<PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
+
+		<PackageReference Include="FluentValidation" Version="11.*" />
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.*" />
+
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.*" />
+
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.*" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\TaskManagementService.DAL\TaskManagementService.DAL.csproj" />
+	</ItemGroup>
 
 </Project>

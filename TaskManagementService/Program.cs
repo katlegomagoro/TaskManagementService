@@ -1,6 +1,8 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using TaskManagementService.Data;
+using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
+using Serilog;
+using TaskManagementService.DAL;
+using TaskManagementService.Services;
 
 namespace TaskManagementService
 {
@@ -10,10 +12,34 @@ namespace TaskManagementService
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // Serilog
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(builder.Configuration)
+                .CreateLogger();
+            builder.Host.UseSerilog();
+
+            // Core services
             builder.Services.AddRazorPages();
             builder.Services.AddServerSideBlazor();
-            builder.Services.AddSingleton<WeatherForecastService>();
+
+            builder.Services.AddMudServices();
+            builder.Services.AddHttpContextAccessor();
+
+            // Firebase JS interop client
+            builder.Services.AddScoped<FirebaseAuthClient>();
+
+            // Database (EF Core + SQL Server) 
+            var connectionString = builder.Configuration.GetConnectionString("TaskManagementServiceDb");
+
+            builder.Services.AddDbContext<TaskManagementServiceDbContext>((provider, options) =>
+            {
+                options.UseSqlServer(connectionString);
+            }, ServiceLifetime.Scoped);
+
+            builder.Services.AddDbContextFactory<TaskManagementServiceDbContext>((provider, options) =>
+            {
+                options.UseSqlServer(connectionString);
+            }, ServiceLifetime.Scoped);
 
             var app = builder.Build();
 
@@ -23,8 +49,11 @@ namespace TaskManagementService
                 app.UseExceptionHandler("/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
+                app.UseHsts();
+
             }
 
+            app.UseSerilogRequestLogging();
             app.UseHttpsRedirection();
 
             app.UseStaticFiles();
