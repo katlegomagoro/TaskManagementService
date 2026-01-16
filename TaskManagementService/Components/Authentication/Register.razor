@@ -1,0 +1,130 @@
+﻿@namespace TaskManagementService.Components.Authentication
+@using MudBlazor
+@using TaskManagementService.Models
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudPaper Elevation="2" Class="pa-4">
+            <EditForm Model="_registerModel" OnValidSubmit="HandleRegister">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="mb-3" />
+                
+                <MudGrid>
+                    <!-- Email Field -->
+                    <MudItem xs="12" Class="mb-4">
+                        <MudTextField T="string"
+                                      Label="Email Address"
+                                      Required="true"
+                                      RequiredError="Email is required"
+                                      AdornmentIcon="@Icons.Material.Filled.Email"
+                                      Adornment="Adornment.Start"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Email"
+                                      FullWidth="true"
+                                      Value="@_registerModel.Email"
+                                      ValueChanged="@(val => HandleEmailChanged(val))"
+                                      ValueExpression="@(() => _registerModel.Email)" />
+                    </MudItem>
+
+                    <!-- Display Name Field -->
+                    <MudItem xs="12" Class="mb-4">
+                        <MudTextField T="string"
+                                      Label="Display Name"
+                                      Required="true"
+                                      RequiredError="Display name is required"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      Adornment="Adornment.Start"
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true"
+                                      Value="@_registerModel.DisplayName"
+                                      ValueChanged="@(val => HandleDisplayNameChanged(val))"
+                                      ValueExpression="@(() => _registerModel.DisplayName)" />
+                    </MudItem>
+
+                    <!-- Password Field -->
+                    <MudItem xs="12" Class="mb-4">
+                        <MudTextField T="string"
+                                      Label="Password"
+                                      Required="true"
+                                      RequiredError="Password is required"
+                                      AdornmentIcon="@Icons.Material.Filled.Lock"
+                                      Adornment="Adornment.Start"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      FullWidth="true"
+                                      Value="@_registerModel.Password"
+                                      ValueChanged="@(val => HandlePasswordChanged(val))"
+                                      ValueExpression="@(() => _registerModel.Password)" />
+                    </MudItem>
+
+                    <!-- Confirm Password Field -->
+                    <MudItem xs="12" Class="mb-4">
+                        <MudTextField T="string"
+                                      Label="Confirm Password"
+                                      Required="true"
+                                      RequiredError="Please confirm your password"
+                                      AdornmentIcon="@Icons.Material.Filled.Lock"
+                                      Adornment="Adornment.Start"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      FullWidth="true"
+                                      Value="@_registerModel.ConfirmPassword"
+                                      ValueChanged="@(val => HandleConfirmPasswordChanged(val))"
+                                      ValueExpression="@(() => _registerModel.ConfirmPassword)" />
+                    </MudItem>
+                    <!-- Terms Agreement Checkbox -->
+                    <MudItem xs="12" class="mb-4">
+                        <MudCheckBox T="bool"
+                                     Color="Color.Primary"
+                                     Required="true"
+                                     RequiredError="You must agree to the terms and conditions"
+                                     Value="@_registerModel.AgreeToTerms"
+                                     ValueChanged="@HandleAgreeToTermsChanged">
+                            <span>I agree to the </span>
+                            <MudLink Href="/terms" Target="_blank" Color="Color.Primary" Underline="Underline.Hover">
+                                terms and conditions
+                            </MudLink>
+                        </MudCheckBox>
+                    </MudItem>
+
+
+
+                    <!-- Submit Button -->
+                    <MudItem xs="12" Class="mb-4">
+                        @if (_isLoading)
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       FullWidth="true"
+                                       Disabled="true">
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                <span class="ml-2">Creating Account...</span>
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       FullWidth="true"
+                                       ButtonType="ButtonType.Submit"
+                                       StartIcon="@Icons.Material.Filled.PersonAdd">
+                                Create Account
+                            </MudButton>
+                        }
+                    </MudItem>
+
+                    <!-- Switch to Login -->
+                    <MudItem xs="12" Class="text-center mt-3">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Already have an account? 
+                            <MudLink Href="#" OnClick="@(() => SwitchToLogin())" 
+                                     Color="Color.Primary" Underline="Underline.Hover">
+                                Sign in here
+                            </MudLink>
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+            </EditForm>
+        </MudPaper>
+    </MudItem>
+</MudGrid>

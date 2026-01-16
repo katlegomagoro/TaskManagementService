@@ -1,0 +1,162 @@
+﻿@page "/"
+@page "/auth/{Mode?}"
+@namespace TaskManagementService.Pages
+
+@using MudBlazor
+@using TaskManagementService.Components.Authentication
+
+<PageTitle>@PageTitleText</PageTitle>
+
+<MudGrid>
+    <!-- Breadcrumbs - Only show on auth pages, not on root -->
+    @if (!IsRootPage())
+    {
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="pa-4">
+                <MudBreadcrumbs Items="_breadcrumbItems" />
+            </MudPaper>
+        </MudItem>
+    }
+
+    <!-- Main Content -->
+    <MudItem xs="12">
+        <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="min-height: 100vh;">
+            <MudItem xs="12" sm="10" md="8" lg="6" xl="5">
+                <MudPaper Elevation="10" Class="pa-6" Style="border-radius: 12px;">
+                    <MudGrid>
+                        <!-- Header with Logo/Icon -->
+                        <MudItem xs="12" Class="text-center mb-6">
+                            @if (IsRootPage())
+                            {
+                                <!-- Show bigger header for landing page -->
+                                <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-4">
+                                    <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Large" />
+                                </MudAvatar>
+
+                                <MudText Typo="Typo.h3" Class="mb-3" Style="color: #673ab7; font-weight: bold;">
+                                    Task Management Service
+                                </MudText>
+
+                                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+                                    Organize, track, and complete your tasks efficiently
+                                </MudText>
+                            }
+                            else
+                            {
+                                <!-- Normal auth header -->
+                                <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-3">
+                                    <MudIcon Icon="@GetAuthIcon()" Size="Size.Large" />
+                                </MudAvatar>
+
+                                <MudText Typo="Typo.h4" Class="mb-2" Style="color: #673ab7; font-weight: bold;">
+                                    @PageTitleText
+                                </MudText>
+
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @PageSubtitleText
+                                </MudText>
+                            }
+                        </MudItem>
+
+                        <!-- Form Container -->
+                        <MudItem xs="12" Class="mt-4">
+                            @if (_isLoginMode)
+                            {
+                                <Login OnSwitchToRegister="SwitchToRegister" />
+                            }
+                            else
+                            {
+                                <Register OnSwitchToLogin="SwitchToLogin" />
+                            }
+                        </MudItem>
+
+                        <!-- Call to Action for Landing Page -->
+                        @if (IsRootPage() && _isLoginMode)
+                        {
+                            <MudItem xs="12" Class="mt-6 text-center">
+                                <MudText Typo="Typo.body1" Class="mb-3">
+                                    New to Task Management Service?
+                                </MudText>
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Secondary"
+                                           FullWidth="true"
+                                           OnClick="@(() => SwitchToRegister())"
+                                           StartIcon="@Icons.Material.Filled.PersonAdd">
+                                    Create Free Account
+                                </MudButton>
+                            </MudItem>
+                        }
+
+                        <!-- Divider - Only show on non-root or when not in landing login mode -->
+                        @if (!IsRootPage() || !_isLoginMode)
+                        {
+                            <MudItem xs="12" Class="my-6">
+                                <div class="d-flex align-center">
+                                    <MudDivider Class="flex-grow-1" />
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="px-3">
+                                        or continue with
+                                    </MudText>
+                                    <MudDivider Class="flex-grow-1" />
+                                </div>
+                            </MudItem>
+
+                            <!-- Alternative Login Options -->
+                            <MudItem xs="12" Class="mb-6">
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="6">
+                                        <MudButton Variant="Variant.Outlined"
+                                                   Color="Color.Default"
+                                                   StartIcon="@Icons.Material.Filled.AccountCircle"
+                                                   FullWidth="true"
+                                                   OnClick="@(() => HandleSocialLogin("Google"))">
+                                            Continue with Google
+                                        </MudButton>
+                                    </MudItem>
+
+                                    <MudItem xs="12" sm="6">
+                                        <MudButton Variant="Variant.Outlined"
+                                                   Color="Color.Default"
+                                                   StartIcon="@Icons.Material.Filled.Business"
+                                                   FullWidth="true"
+                                                   OnClick="@(() => HandleSocialLogin("Microsoft"))">
+                                            Continue with Microsoft
+                                        </MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudItem>
+                        }
+
+                        <!-- Footer Links -->
+                        <MudItem xs="12" Class="text-center">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                By continuing, you agree to our
+                                <MudLink Href="/terms" Color="Color.Primary" Underline="Underline.Hover">Terms</MudLink>
+                                and
+                                <MudLink Href="/privacy" Color="Color.Primary" Underline="Underline.Hover">Privacy Policy</MudLink>
+                            </MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Demo Credentials Banner -->
+                @if (!IsRootPage())
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudPaper Elevation="1" Class="pa-3" Style="border-radius: 12px;">
+                            <MudGrid AlignItems="AlignItems.Center" Spacing="1">
+                                <MudItem xs="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                                </MudItem>
+                                <MudItem xs="11">
+                                    <MudText Typo="Typo.body2">
+                                        <b>Demo:</b> Use your Firebase email + password to test.
+                                    </MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudItem>
+        </MudGrid>
+    </MudItem>
+</MudGrid>
