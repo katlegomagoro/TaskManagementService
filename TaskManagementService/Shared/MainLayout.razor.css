@@ -1,70 +1,148 @@
-.page {
-    position: relative;
-    display: flex;
-    flex-direction: column;
+/* iOCO-inspired Theme Variables */
+:root {
+    --ioco-primary: #57B5B4; /* Tradewind Teal - Primary accent */
+    --ioco-primary-dark: #4A9A99; /* Darker teal for hover states */
+    --ioco-secondary: #B22038; /* Deep Red/Maroon - Secondary accent */
+    --ioco-neutral-dark: #1A2B3C; /* Dark blue-gray for text */
+    --ioco-neutral-light: #F8F9FA; /* Light gray for backgrounds */
+    --ioco-neutral-white: #FFFFFF;
+    --ioco-success: #28A745;
+    --ioco-warning: #FFC107;
+    --ioco-error: #DC3545;
+    --ioco-info: #17A2B8;
+    --ioco-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-main {
-    flex: 1;
+/* iOCO-inspired Global Styles */
+.ioco-sidebar {
+    background: linear-gradient(180deg, var(--ioco-neutral-dark) 0%, #2C3E50 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+.ioco-navmenu .mud-nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin: 4px 8px;
 }
 
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
+    .ioco-navmenu .mud-nav-link:hover {
+        background-color: rgba(87, 181, 180, 0.1);
+        color: var(--ioco-primary);
+        transform: translateX(4px);
+    }
+
+    .ioco-navmenu .mud-nav-link.active {
+        background-color: var(--ioco-primary);
+        color: white;
+        box-shadow: 0 2px 8px rgba(87, 181, 180, 0.3);
+    }
+
+    .ioco-navmenu .mud-nav-link .mud-icon-root {
+        color: inherit;
+    }
+
+.ioco-appbar {
+    background-color: var(--ioco-neutral-white);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: var(--ioco-shadow);
 }
 
-    .top-row ::deep a, .top-row .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-    }
-
-    .top-row a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row:not(.auth) {
-        display: none;
-    }
-
-    .top-row.auth {
-        justify-content: space-between;
-    }
-
-    .top-row a, .top-row .btn-link {
-        margin-left: 0;
-    }
+.ioco-app-title {
+    color: var(--ioco-neutral-dark);
+    font-weight: 600;
+    letter-spacing: -0.5px;
 }
 
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
+.ioco-content {
+    background-color: var(--ioco-neutral-light);
+    min-height: calc(100vh - 64px);
+}
+
+/* iOCO Button Styles */
+.mud-button-filled.ioco-primary {
+    background-color: var(--ioco-primary);
+    color: white;
+}
+
+    .mud-button-filled.ioco-primary:hover {
+        background-color: var(--ioco-primary-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(87, 181, 180, 0.3);
     }
 
-    .sidebar {
+.mud-button-outlined.ioco-secondary {
+    border-color: var(--ioco-secondary);
+    color: var(--ioco-secondary);
+}
+
+    .mud-button-outlined.ioco-secondary:hover {
+        background-color: rgba(178, 32, 56, 0.1);
+        border-color: var(--ioco-secondary);
+    }
+
+/* iOCO Card Styles */
+.ioco-card {
+    background: var(--ioco-neutral-white);
+    border-radius: 12px;
+    box-shadow: var(--ioco-shadow);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+    .ioco-card:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+
+/* iOCO Typography */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--ioco-neutral-dark);
+    font-weight: 600;
+    letter-spacing: -0.25px;
+}
+
+.ioco-heading-primary {
+    color: var(--ioco-primary);
+    font-weight: 700;
+    border-bottom: 3px solid var(--ioco-primary);
+    padding-bottom: 8px;
+    display: inline-block;
+}
+
+/* iOCO Form Styles */
+.mud-input-outlined.ioco-focused .mud-input-outlined-border {
+    border-color: var(--ioco-primary);
+    border-width: 2px;
+}
+
+.mud-input-label.ioco-focused {
+    color: var(--ioco-primary);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 960px) {
+    .ioco-sidebar {
         width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
     }
 
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
+    .ioco-app-title {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .ioco-sidebar {
+        width: 100%;
+        max-width: 300px;
     }
 
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+    .ioco-content {
+        padding: 16px;
     }
+}
+
+/* Animation for smooth transitions */
+.mud-drawer, .mud-nav-link, .mud-button, .ioco-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using MudBlazor;
 using MudBlazor.Services;
 using Serilog;
 using TaskManagementService.DAL;
+using TaskManagementService.Interfaces;
 using TaskManagementService.Services;
 
 namespace TaskManagementService
@@ -25,8 +27,21 @@ namespace TaskManagementService
             builder.Services.AddMudServices();
             builder.Services.AddHttpContextAccessor();
 
-            // Firebase JS interop client
-            builder.Services.AddScoped<FirebaseAuthClient>();
+            builder.Services.AddMudServices(config =>
+            {
+                config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
+                config.SnackbarConfiguration.PreventDuplicates = false;
+                config.SnackbarConfiguration.NewestOnTop = false;
+                config.SnackbarConfiguration.ShowCloseIcon = true;
+                config.SnackbarConfiguration.VisibleStateDuration = 5000;
+                config.SnackbarConfiguration.HideTransitionDuration = 500;
+                config.SnackbarConfiguration.ShowTransitionDuration = 500;
+                config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
+            });
+
+            // Register Interfaces and Services
+            builder.Services.AddScoped<IFirebaseAuthClient, FirebaseAuthClient>();
+            builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
             // Database (EF Core + SQL Server) 
             var connectionString = builder.Configuration.GetConnectionString("TaskManagementServiceDb");
@@ -41,6 +56,12 @@ namespace TaskManagementService
                 options.UseSqlServer(connectionString);
             }, ServiceLifetime.Scoped);
 
+            // Add authentication and authorization
+
+            builder.Services.AddCascadingAuthenticationState();
+            builder.Services.AddAuthentication();
+            builder.Services.AddAuthorization();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -49,19 +70,23 @@ namespace TaskManagementService
                 app.UseExceptionHandler("/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
-                app.UseHsts();
-
             }
 
             app.UseSerilogRequestLogging();
             app.UseHttpsRedirection();
-
             app.UseStaticFiles();
-
             app.UseRouting();
 
             app.MapBlazorHub();
             app.MapFallbackToPage("/_Host");
+
+            // Apply migrations on startup
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<TaskManagementServiceDbContext>>();
+                using var dbContext = dbContextFactory.CreateDbContext();
+                dbContext.Database.Migrate();
+            }
 
             app.Run();
         }

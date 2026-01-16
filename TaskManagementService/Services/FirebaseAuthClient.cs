@@ -1,8 +1,9 @@
 ﻿using Microsoft.JSInterop;
+using TaskManagementService.Interfaces;
 
 namespace TaskManagementService.Services
 {
-    public class FirebaseAuthClient
+    public class FirebaseAuthClient : IFirebaseAuthClient
     {
         private readonly IJSRuntime _js;
 
@@ -22,5 +23,6 @@ namespace TaskManagementService.Services
 
         public Task<string?> GetIdTokenAsync() =>
             _js.InvokeAsync<string?>("firebaseAuth.getIdToken").AsTask();
+
     }
 }
