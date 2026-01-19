@@ -18,7 +18,7 @@ namespace TaskManagementService.Shared
             // Check if we're at the root or auth pages
             return string.IsNullOrEmpty(currentUri) ||
                    currentUri == "/" ||
-                   currentUri.StartsWith("auth");
+                   currentUri.StartsWith("auth", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool ShouldShowHeader()

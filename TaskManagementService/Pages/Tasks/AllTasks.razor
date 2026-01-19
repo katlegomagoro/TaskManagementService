@@ -1,0 +1,294 @@
+﻿@page "/all-tasks"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@using ViewModels = TaskManagementService.Models.ViewModels
+@using TaskStatusEnum = TaskManagementService.DAL.Enums.TaskStatus
+@using TaskManagementService.Components.Tasks
+
+<PageTitle>All Tasks</PageTitle>
+
+<AuthorizeView>
+    <Authorized Context="authContext">
+        @if (_isLoading)
+        {
+            <MudContainer>
+                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 50vh;">
+                    <MudItem>
+                        <div class="d-flex flex-column align-center">
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                            <MudText Typo="Typo.h6" Class="mt-4">Loading All Tasks...</MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudContainer>
+        }
+        else if (!_hasPermission)
+        {
+            <MudContainer>
+                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 70vh;">
+                    <MudItem>
+                        <MudPaper Class="pa-6" Elevation="10">
+                            <MudText Typo="Typo.h5" Color="Color.Error" Class="text-center mb-4">
+                                ⚠️ Access Denied
+                            </MudText>
+                            <MudText Typo="Typo.body1" Class="text-center mb-4">
+                                You don't have permission to view all tasks. Only Admin and SuperAdmin can access this page.
+                            </MudText>
+                            <div class="text-center mt-4">
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           Href="/tasks"
+                                           StartIcon="@Icons.Material.Filled.ArrowBack">
+                                    Go to My Tasks
+                                </MudButton>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudContainer>
+        }
+        else
+        {
+            <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="my-4">
+                <MudPaper Class="pa-4">
+                    <!-- Header -->
+                    <MudGrid Justify="Justify.SpaceBetween" AlignItems="Center" Class="mb-4">
+                        <MudItem xs="8">
+                            <MudText Typo="Typo.h4" Style="color: #673ab7; font-weight: bold;">
+                                All Tasks
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Manage tasks across all users
+                            </MudText>
+                        </MudItem>
+
+                        <MudItem xs="4" Class="d-flex justify-end">
+                            @if (_canEditAllTasks)
+                            {
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="@(async () => await OpenCreateDialog())">
+                                    New Task
+                                </MudButton>
+                            }
+                        </MudItem>
+                    </MudGrid>
+
+                    <!-- Stats Summary -->
+                    @if (_stats != null)
+                    {
+                        <MudGrid Class="mb-4">
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Primary">@_stats.TotalTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Tasks</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Info">@_stats.OpenTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Open</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Warning">@_stats.InProgressTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">In Progress</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Success">@_stats.CompletedTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Completed</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Default">@_stats.OnHoldTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">On Hold</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Error">@_stats.CancelledTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Cancelled</MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                    }
+
+                    <!-- Data Grid -->
+                    <MudDataGrid @ref="_grid"
+                                 T="ViewModels.TaskViewModel"
+                                 ServerData="LoadServerData"
+                                 RowsPerPage="20"
+                                 Hideable="false"
+                                 Filterable="true"
+                                 FilterMode="DataGridFilterMode.ColumnFilterMenu"
+                                 Editable="@_canEditAllTasks"
+                                 EditMode="DataGridEditMode.Cell"
+                                 EditTrigger="DataGridEditTrigger.Manual"
+                                 Bordered="true"
+                                 Dense="true"
+                                 Hover="true"
+                                 MultiSelection="@_canDeleteAllTasks"
+                                 SelectedItems="@_selectedTasks"
+                                 SelectedItemsChanged="@((selectedItems) => _selectedTasks = selectedItems)">
+
+                        <Columns>
+                            <PropertyColumn T="ViewModels.TaskViewModel"
+                                            TProperty="string"
+                                            Title="Title"
+                                            Property="x => x.Title"
+                                            Sortable="true"
+                                            Filterable="true"
+                                            Editable="@_canEditAllTasks">
+                                <EditTemplate Context="edit">
+                                    <MudTextField Value="@edit.Item.Title"
+                                                  ValueChanged="@((string v) => edit.Item.Title = v)"
+                                                  Immediate="true" />
+                                </EditTemplate>
+                            </PropertyColumn>
+
+                            <PropertyColumn T="ViewModels.TaskViewModel"
+                                            TProperty="string"
+                                            Title="Description"
+                                            Property="x => x.Description"
+                                            Sortable="false"
+                                            Filterable="true"
+                                            Editable="@_canEditAllTasks">
+                                <EditTemplate Context="edit">
+                                    <MudTextField Value="@edit.Item.Description"
+                                                  ValueChanged="@((string v) => edit.Item.Description = v)"
+                                                  Immediate="true"
+                                                  Lines="2" />
+                                </EditTemplate>
+                            </PropertyColumn>
+
+                            <PropertyColumn T="ViewModels.TaskViewModel"
+                                            TProperty="TaskStatusEnum"
+                                            Title="Status"
+                                            Property="x => x.Status"
+                                            Sortable="true"
+                                            Filterable="true"
+                                            Editable="@_canEditAllTasks">
+                                <CellTemplate Context="cell">
+                                    <MudChip Color="@GetStatusColor(cell.Item.Status)">
+                                        @cell.Item.Status.ToString()
+                                    </MudChip>
+                                </CellTemplate>
+                                <EditTemplate Context="edit">
+                                    <MudSelect T="TaskStatusEnum"
+                                               Value="@edit.Item.Status"
+                                               ValueChanged="@((TaskStatusEnum v) => edit.Item.Status = v)"
+                                               Dense="true">
+                                        @foreach (var status in Enum.GetValues<TaskStatusEnum>())
+                                        {
+                                            <MudSelectItem T="TaskStatusEnum" Value="@status">
+                                                @status.ToString()
+                                            </MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </EditTemplate>
+                            </PropertyColumn>
+
+                            <PropertyColumn T="ViewModels.TaskViewModel"
+                                            TProperty="string"
+                                            Title="Owner"
+                                            Property="x => x.OwnerName"
+                                            Sortable="true"
+                                            Filterable="true" />
+
+                            <PropertyColumn T="ViewModels.TaskViewModel"
+                                            TProperty="DateTime"
+                                            Title="Created"
+                                            Property="x => x.CreatedAtUtc"
+                                            Sortable="true"
+                                            Format="MM/dd/yyyy" />
+
+                            @if (_canEditAllTasks || _canDeleteAllTasks)
+                            {
+                                <TemplateColumn T="ViewModels.TaskViewModel" Title="Actions">
+                                    <CellTemplate Context="cell">
+                                        <MudButtonGroup>
+                                            @if (_canEditAllTasks)
+                                            {
+                                                <MudTooltip Text="Edit Task">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                                   Color="Color.Primary"
+                                                                   Size="Size.Small"
+                                                                   OnClick="@(() => OpenEditDialog(cell.Item))" />
+                                                </MudTooltip>
+                                            }
+
+                                            @if (_canDeleteAllTasks)
+                                            {
+                                                <MudTooltip Text="Delete Task">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                                   Color="Color.Error"
+                                                                   Size="Size.Small"
+                                                                   OnClick="@(() => DeleteTask(cell.Item))" />
+                                                </MudTooltip>
+                                            }
+                                        </MudButtonGroup>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            }
+                        </Columns>
+
+                        <ToolBarContent>
+                            @if (_selectedTasks.Any() && _canDeleteAllTasks)
+                            {
+                                <MudText Typo="Typo.body2" Class="mr-3">
+                                    @_selectedTasks.Count selected
+                                </MudText>
+
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="@(() => DeleteSelectedTasks())"
+                                           StartIcon="@Icons.Material.Filled.Delete">
+                                    Delete Selected
+                                </MudButton>
+                            }
+                        </ToolBarContent>
+
+                        <PagerContent>
+                            <MudDataGridPager T="ViewModels.TaskViewModel" />
+                        </PagerContent>
+                    </MudDataGrid>
+
+                    @if (_stats?.TasksByOwner != null && _stats.TasksByOwner.Any())
+                    {
+                        <MudPaper Class="pa-4 mt-4" Elevation="1">
+                            <MudText Typo="Typo.h6" Class="mb-3">Tasks by Owner</MudText>
+                            <MudGrid>
+                                @foreach (var owner in _stats.TasksByOwner.OrderByDescending(kv => kv.Value).Take(10))
+                                {
+                                    <MudItem xs="12" sm="6" md="4" Class="mb-3">
+                                        <MudPaper Class="pa-3" Elevation="0">
+                                            <div class="d-flex justify-space-between align-center">
+                                                <MudText Typo="Typo.body2" Class="truncate" Style="max-width: 150px;">
+                                                    @owner.Key
+                                                </MudText>
+                                                <MudBadge Color="Color.Primary">
+                                                    @owner.Value
+                                                </MudBadge>
+                                            </div>
+                                            <MudProgressLinear Value="@((double)owner.Value / _stats.TotalTasks * 100)"
+                                                               Color="Color.Primary"
+                                                               Class="mt-1" />
+                                        </MudPaper>
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        </MudPaper>
+                    }
+                </MudPaper>
+            </MudContainer>
+        }
+    </Authorized>
+</AuthorizeView>

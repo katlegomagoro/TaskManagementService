@@ -1,0 +1,218 @@
+﻿@page "/ManageUserPermissions"
+@attribute [Authorize]
+@using TaskManagementService.DAL.Enums
+@using TaskManagementService.DAL.Models
+@using TaskManagementService.Models.ViewModels
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using TaskManagementService.Extensions
+@using TaskManagementService.Components.Dialogs
+
+<PageTitle>@(_currentUserPermission == PermissionType.SuperAdmin ? "Manage User Permissions" : "My Permissions")</PageTitle>
+
+<AuthorizeView>
+    <Authorized Context="authContext">
+        @if (_isLoading)
+        {
+            <MudContainer>
+                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 50vh;">
+                    <MudItem>
+                        <div class="d-flex flex-column align-center">
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                            <MudText Typo="Typo.h6" Class="mt-4">Loading Permissions...</MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudContainer>
+        }
+        else
+        {
+            <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="my-4">
+                <MudPaper Class="pa-4">
+                    <!-- Header -->
+                    <MudGrid Justify="Justify.SpaceBetween" AlignItems="Center" Class="mb-4">
+                        <MudFlexBreak />
+                        <MudBreadcrumbs Items="_breadcrumbItems" />
+                        <MudFlexBreak />
+                        <MudItem xs="8">
+                            <MudText Typo="Typo.h5" Style="color: #673ab7; font-weight: bold;">
+                                @(_currentUserPermission == PermissionType.SuperAdmin ? "Manage User Permissions" : 
+                                  _currentUserPermission == PermissionType.Admin ? "View All Permissions" : "My Permissions")
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @GetPageSubtitle()
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="4" Class="d-flex justify-end">
+                            @if (_canEdit)
+                            {
+                                <MudBadge Color="Color.Error"
+                                          Visible="@_hasChanges"
+                                          Content=@("Save Changes!")
+                                          Origin="Origin.CenterLeft">
+                                    <MudTooltip Text="Save Changes" Placement="Placement.Bottom">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Save"
+                                                       Color="Color.Primary"
+                                                       OnClick="SaveChanges"
+                                                       Disabled="!CanSave()"
+                                                       Size="Size.Medium" />
+                                    </MudTooltip>
+                                </MudBadge>
+                            }
+                        </MudItem>
+                    </MudGrid>
+
+                    <!-- Search and Add Section (Only for SuperAdmin/Admin) -->
+                    @if (_currentUserPermission == PermissionType.SuperAdmin || _currentUserPermission == PermissionType.Admin)
+                    {
+                        <MudGrid Class="mb-4">
+                            <MudItem xs="8">
+                                <MudTextField @bind-Value="_userSearchTerm"
+                                              Label="Search Users"
+                                              Placeholder="Type to search users..."
+                                              Adornment="Adornment.End"
+                                              Icon="@Icons.Material.Filled.Search"
+                                              OnDebounceIntervalElapsed="OnSearchChange"
+                                              DebounceInterval="300" />
+                            </MudItem>
+                            @if (_canEdit)
+                            {
+                                <MudItem xs="4" Class="d-flex justify-content-end">
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.Add"
+                                               OnClick="OnAddUser">
+                                        Add User Permission
+                                    </MudButton>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    }
+
+                    <!-- Data Grid -->
+                    <MudDataGrid @ref="_grid"
+                                 T="UserPermissionViewModel"
+                                 ServerData="LoadServerData"
+                                 RowsPerPage="20"
+                                 Hideable="false"
+                                 Filterable="@(_currentUserPermission == PermissionType.SuperAdmin || _currentUserPermission == PermissionType.Admin)"
+                                 FilterMode="DataGridFilterMode.ColumnFilterMenu"
+                                 EditMode="DataGridEditMode.Cell"
+                                 EditTrigger="DataGridEditTrigger.Manual"
+                                 Bordered="true"
+                                 Dense="true"
+                                 Hover="true">
+
+                        <Columns>
+                            <!-- User Column -->
+                            <PropertyColumn T="UserPermissionViewModel"
+                                            TProperty="string"
+                                            Title="User"
+                                            Property="x => x.UserPermission.AppUser.DisplayName"
+                                            Sortable="true"
+                                            Filterable="@(_currentUserPermission == PermissionType.SuperAdmin || _currentUserPermission == PermissionType.Admin)" />
+
+                            <!-- Email Column -->
+                            <PropertyColumn T="UserPermissionViewModel"
+                                            TProperty="string"
+                                            Title="Email"
+                                            Property="x => x.UserPermission.AppUser.Email"
+                                            Sortable="@(_currentUserPermission == PermissionType.SuperAdmin || _currentUserPermission == PermissionType.Admin)"
+                                            Filterable="@(_currentUserPermission == PermissionType.SuperAdmin || _currentUserPermission == PermissionType.Admin)" />
+
+                            <!-- Permission Type Column -->
+                            <PropertyColumn T="UserPermissionViewModel"
+                                            TProperty="PermissionType"
+                                            Title="Permission Type"
+                                            Property="x => x.UserPermission.PermissionType"
+                                            Sortable="@(_currentUserPermission == PermissionType.SuperAdmin || _currentUserPermission == PermissionType.Admin)"
+                                            Filterable="@(_currentUserPermission == PermissionType.SuperAdmin || _currentUserPermission == PermissionType.Admin)"
+                                            Editable="@_canEdit">
+                                <CellTemplate Context="cell">
+                                    <MudChip Color="GetPermissionColor(cell.Item.UserPermission.PermissionType)">
+                                        @cell.Item.UserPermission.PermissionType.GetDisplayName()
+                                    </MudChip>
+                                </CellTemplate>
+                                <EditTemplate Context="edit">
+                                    @if (_canEdit)
+                                    {
+                                        <MudSelect @bind-Value="edit.Item.UserPermission.PermissionType"
+                                                   Dense="true"
+                                                   OnValueChanged="@((PermissionType newValue) => OnPermissionTypeChanged(edit.Item, newValue))">
+                                            @foreach (var permissionType in Enum.GetValues<PermissionType>())
+                                            {
+                                                <MudSelectItem Value="@permissionType">
+                                                    @permissionType.GetDisplayName()
+                                                </MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    }
+                                    else
+                                    {
+                                        <!-- Show read-only view if not editable -->
+                                        <MudChip Color="GetPermissionColor(edit.Item.UserPermission.PermissionType)">
+                                            @edit.Item.UserPermission.PermissionType.GetDisplayName()
+                                        </MudChip>
+                                    }
+                                </EditTemplate>
+                            </PropertyColumn>
+
+                            <!-- Actions Column (Only for SuperAdmin) -->
+                            @if (_canEdit)
+                            {
+                                <TemplateColumn T="UserPermissionViewModel" Title="Actions">
+                                    <CellTemplate Context="cell">
+                                        @if (cell.Item.UserPermission.AppUserId != _currentUserId)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Color="Color.Error"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => OnDeletePermission(cell.Item))" />
+                                        }
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            }
+                        </Columns>
+
+                        <PagerContent>
+                            <MudDataGridPager T="UserPermissionViewModel" />
+                        </PagerContent>
+                    </MudDataGrid>
+
+                    <!-- Help Information -->
+                    <MudAlert Severity="Severity.Info" Class="mt-4">
+                        <MudAlert>Permission Information</MudAlert>
+                        <MudText Typo="Typo.body2">
+                            @GetRoleDescription()
+                        </MudText>
+                    </MudAlert>
+                </MudPaper>
+            </MudContainer>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <MudContainer>
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 70vh;">
+                <MudItem>
+                    <MudPaper Class="pa-6" Elevation="10">
+                        <MudText Typo="Typo.h5" Color="Color.Error" Class="text-center mb-4">
+                            ⚠️ Access Denied
+                        </MudText>
+                        <MudText Typo="Typo.body1" Class="text-center mb-4">
+                            You must be logged in to view permissions.
+                        </MudText>
+                        <div class="text-center mt-4">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Href="/auth"
+                                       StartIcon="@Icons.Material.Filled.Login">
+                                Login
+                            </MudButton>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>

@@ -1,0 +1,261 @@
+﻿@page "/profile"
+@attribute [Authorize]
+@using MudBlazor
+@using TaskManagementService.DAL.Enums
+@using TaskManagementService.DAL.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>My Profile</PageTitle>
+
+<AuthorizeView>
+    <Authorizing>
+        <MudContainer>
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 50vh;">
+                <MudItem>
+                    <div class="d-flex flex-column align-center">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                        <MudText Typo="Typo.h6" Class="mt-4">Loading Profile...</MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </Authorizing>
+
+    <Authorized>
+        @if (_isLoading)
+        {
+            <MudContainer>
+                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 50vh;">
+                    <MudItem>
+                        <div class="d-flex flex-column align-center">
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                            <MudText Typo="Typo.h6" Class="mt-4">Loading Profile...</MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudContainer>
+        }
+        else
+        {
+            <MudContainer MaxWidth="MaxWidth.Medium" Class="my-4">
+                <MudPaper Class="pa-6" Elevation="10">
+                    <!-- Header -->
+                    <div class="text-center mb-6">
+                        <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large" />
+                        </MudAvatar>
+                        <MudText Typo="Typo.h4" Style="color: #673ab7; font-weight: bold;">
+                            My Profile
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Manage your account information
+                        </MudText>
+                    </div>
+
+                    <!-- Profile Form -->
+                    <EditForm Model="_profileModel" OnValidSubmit="@HandleSaveProfile" Context="formContext">
+                        <DataAnnotationsValidator />
+                        <MudGrid Spacing="2">
+
+                            <!-- Email (Read-only) -->
+                            <MudItem xs="12">
+                                <MudTextField Label="Email Address"
+                                              @bind-Value="_profileModel.Email"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              AdornmentIcon="@Icons.Material.Filled.Email"
+                                              FullWidth="true" />
+                            </MudItem>
+
+                            <!-- Display Name -->
+                            <MudItem xs="12">
+                                <MudTextField Label="Display Name"
+                                              @bind-Value="_profileModel.DisplayName"
+                                              Required="true"
+                                              RequiredError="Display name is required"
+                                              For="@(() => _profileModel.DisplayName)"
+                                              Variant="Variant.Outlined"
+                                              Immediate="true"
+                                              AdornmentIcon="@Icons.Material.Filled.Person"
+                                              OnInput="@OnDisplayNameChanged"
+                                              FullWidth="true" />
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    This name will be visible to others
+                                </MudText>
+                            </MudItem>
+
+                            <!-- Permission Type (Read-only) -->
+                            <MudItem xs="12">
+                                <MudSelect Label="Permission Type"
+                                           @bind-Value="_profileModel.PermissionType"
+                                           ReadOnly="true"
+                                           Variant="Variant.Outlined"
+                                           AdornmentIcon="@Icons.Material.Filled.Security"
+                                           FullWidth="true">
+                                    @foreach (var permissionType in Enum.GetValues<PermissionType>())
+                                    {
+                                        <MudSelectItem Value="@permissionType">
+                                            @permissionType.ToString()
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <!-- Account Created -->
+                            <MudItem xs="12">
+                                <MudTextField Label="Account Created"
+                                              @bind-Value="_profileModel.CreatedAtUtc"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              AdornmentIcon="@Icons.Material.Filled.DateRange"
+                                              FullWidth="true" />
+                            </MudItem>
+
+                            <!-- Last Updated -->
+                            <MudItem xs="12">
+                                <MudTextField Label="Last Updated"
+                                              @bind-Value="_profileModel.ModifiedAtUtc"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              AdornmentIcon="@Icons.Material.Filled.Update"
+                                              FullWidth="true" />
+                            </MudItem>
+
+                            <!-- Action Buttons -->
+                            <MudItem xs="12" Class="mt-4">
+                                <div class="d-flex justify-space-between">
+                                    <MudButton Variant="Variant.Text"
+                                               Color="Color.Secondary"
+                                               Href="/"
+                                               StartIcon="@Icons.Material.Filled.ArrowBack">
+                                        Back
+                                    </MudButton>
+
+                                    <div>
+                                        @if (_hasChanges)
+                                        {
+                                            <MudButton Variant="Variant.Text"
+                                                       Color="Color.Default"
+                                                       OnClick="ResetForm"
+                                                       Class="mr-2"
+                                                       Disabled="@_isSaving">
+                                                Reset
+                                            </MudButton>
+                                        }
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   ButtonType="ButtonType.Submit"
+                                                   StartIcon="@Icons.Material.Filled.Save"
+                                                   Disabled="@(!_hasChanges || _isSaving)">
+                                            @if (_isSaving)
+                                            {
+                                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                                <span>Saving...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Save Changes</span>
+                                            }
+                                        </MudButton>
+                                    </div>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+
+                        <!-- Show validation errors -->
+                        <ValidationSummary Class="mt-4" />
+                    </EditForm>
+
+                    <!-- Additional Information -->
+                    <MudExpansionPanel Class="mt-6">
+                        <TitleContent>
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                            <MudText Typo="Typo.body1">Account Information</MudText>
+                        </TitleContent>
+                        <ChildContent>
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                        <strong>User ID:</strong> @_profileModel.Id
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                        <strong>Firebase UID:</strong>
+                                        @if (!string.IsNullOrEmpty(_profileModel.FirebaseUid))
+                                        {
+                                            <code style="font-size: 0.8em;">@_profileModel.FirebaseUid</code>
+                                        }
+                                        else
+                                        {
+                                            <MudText Color="Color.Warning">Not linked</MudText>
+                                        }
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <div class="d-flex align-center">
+                                        <MudButton Variant="Variant.Outlined"
+                                                   Color="Color.Info"
+                                                   Size="Size.Small"
+                                                   OnClick="@RefreshProfile"
+                                                   StartIcon="@Icons.Material.Filled.Refresh"
+                                                   Disabled="@_isLoading">
+                                            Refresh Profile
+                                        </MudButton>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2">
+                                            Last updated: @DateTime.Now.ToString("HH:mm:ss")
+                                        </MudText>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+                        </ChildContent>
+                    </MudExpansionPanel>
+
+                    <!-- Stats Section -->
+                    <MudGrid Spacing="2" Class="mt-6">
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Task" Size="Size.Medium" Color="Color.Primary" Class="mb-2" />
+                                <MudText Typo="Typo.h6">@_taskCount</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Tasks Created</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Medium" Color="Color.Success" Class="mb-2" />
+                                <MudText Typo="Typo.h6">@_completedTaskCount</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Tasks Completed</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudContainer>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <MudContainer>
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 70vh;">
+                <MudItem>
+                    <MudPaper Class="pa-6" Elevation="10">
+                        <MudText Typo="Typo.h5" Color="Color.Error" Class="text-center mb-4">
+                            ⚠️ Access Denied
+                        </MudText>
+                        <MudText Typo="Typo.body1" Class="text-center mb-4">
+                            You must be logged in to view your profile.
+                        </MudText>
+                        <div class="text-center mt-4">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Href="/auth"
+                                       StartIcon="@Icons.Material.Filled.Login">
+                                Login
+                            </MudButton>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>

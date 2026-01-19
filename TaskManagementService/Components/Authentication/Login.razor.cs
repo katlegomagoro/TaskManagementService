@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
+using System.Security.Claims;
 using TaskManagementService.Interfaces;
 using TaskManagementService.Models;
+using TaskManagementService.Services;
 
 namespace TaskManagementService.Components.Authentication
 {
@@ -26,6 +29,12 @@ namespace TaskManagementService.Components.Authentication
         [Inject]
         private ILogger<Login> Logger { get; set; } = default!;
 
+        [Inject]
+        private CustomAuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+
+        [Inject]
+        private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
         private LoginModel _loginModel = new();
         private bool _isLoading = false;
 
@@ -34,19 +43,19 @@ namespace TaskManagementService.Components.Authentication
             _isLoading = false;
         }
 
-        // Handler for email field - non-nullable string
+        // Handler for email field  
         private void HandleEmailChanged(string val)
         {
             _loginModel.Email = val;
         }
 
-        // Handler for password field - non-nullable string  
+        // Handler for password field
         private void HandlePasswordChanged(string val)
         {
             _loginModel.Password = val;
         }
 
-        // Handler for checkbox - non-nullable bool
+        // Handler for checkbox
         private void HandleRememberMeChanged(bool val)
         {
             _loginModel.RememberMe = val;
@@ -54,61 +63,42 @@ namespace TaskManagementService.Components.Authentication
 
         private async Task HandleLogin()
         {
-            if (_isLoading)
-                return;
+            if (_isLoading) return;
 
             _isLoading = true;
             StateHasChanged();
 
             try
             {
-                var firebaseIdToken = await FirebaseAuthClient.LoginAsync(_loginModel.Email, _loginModel.Password);
+                var user = await AuthStateProvider.LoginAsync(_loginModel.Email, _loginModel.Password);
 
-                if (string.IsNullOrEmpty(firebaseIdToken))
+                if (user.Identity?.IsAuthenticated != true)
                 {
                     Snackbar.Add("Invalid email or password", Severity.Error);
-                    _isLoading = false;
-                    StateHasChanged();
                     return;
                 }
 
-                var appUser = await AuthenticationService.GetOrCreateUserFromFirebaseAsync(firebaseIdToken);
+                var displayName = user.FindFirst(ClaimTypes.Name)?.Value ?? "User";
 
-                if (appUser == null)
-                {
-                    Snackbar.Add("Failed to sync user account. Please try again.", Severity.Error);
-                    _isLoading = false;
-                    StateHasChanged();
-                    return;
-                }
+                Snackbar.Add($"Welcome back, {displayName}!", Severity.Success);
 
-                var isAdmin = await AuthenticationService.IsUserAdminAsync(appUser.Id);
+                // Force authentication state refresh and wait for propagation
+                await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                // delay for state propagation
+                await Task.Delay(200);
 
-                Snackbar.Add($"Welcome back, {appUser.DisplayName}!", Severity.Success);
-
-                if (isAdmin)
-                {
-                    NavigationManager.NavigateTo("/dashboard", true);
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("/tasks", true);
-                }
+                var isAdmin = user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
+                NavigationManager.NavigateTo(isAdmin ? "/all-tasks" : "/tasks", replace: true);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Login failed for email: {Email}", _loginModel.Email);
                 Snackbar.Add("Login failed. Please try again.", Severity.Error);
-                _isLoading = false;
-                StateHasChanged();
             }
             finally
             {
-                if (_isLoading)
-                {
-                    _isLoading = false;
-                    StateHasChanged();
-                }
+                _isLoading = false;
+                StateHasChanged();
             }
         }
 

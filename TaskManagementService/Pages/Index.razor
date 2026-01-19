@@ -1,0 +1,96 @@
+﻿@page "/"
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using TaskManagementService.DAL.Enums
+@using TaskManagementService.Interfaces
+
+<PageTitle>Home - Task Management Service</PageTitle>
+
+<AuthorizeView>
+    <Authorizing>
+        <MudContainer>
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 50vh;">
+                <MudItem>
+                    <div class="d-flex flex-column align-center">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                        <MudText Typo="Typo.h6" Class="mt-4">Loading...</MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </Authorizing>
+
+    <Authorized>
+        <!-- Content for authenticated users -->
+        @* The code-behind will handle redirection *@
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="min-height: 70vh;">
+                <MudItem xs="12" sm="10" md="8" lg="6">
+                    <MudPaper Elevation="8" Class="pa-6" Style="border-radius: 12px;">
+                        <div class="text-center">
+                            <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-4">
+                                <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Large" />
+                            </MudAvatar>
+
+                            <MudText Typo="Typo.h4" Style="color: #673ab7; font-weight: bold;" Class="mb-2">
+                                Welcome back
+                            </MudText>
+
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-5">
+                                Redirecting you to your workspace...
+                            </MudText>
+
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </Authorized>
+
+    <NotAuthorized>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="min-height: 70vh;">
+                <MudItem xs="12" sm="10" md="8" lg="6">
+                    <MudPaper Elevation="10" Class="pa-6" Style="border-radius: 12px;">
+                        <div class="text-center">
+                            <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-4">
+                                <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Large" />
+                            </MudAvatar>
+
+                            <MudText Typo="Typo.h3" Style="color: #673ab7; font-weight: bold;" Class="mb-2">
+                                Task Management Service
+                            </MudText>
+
+                            <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+                                Organize, track, and complete your tasks efficiently.
+                            </MudText>
+
+                            <MudGrid Spacing="2" Justify="Justify.Center">
+                                <MudItem xs="12" sm="6">
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               FullWidth="true"
+                                               Href="/auth"
+                                               StartIcon="@Icons.Material.Filled.Login">
+                                        Sign In
+                                    </MudButton>
+                                </MudItem>
+
+                                <MudItem xs="12" sm="6">
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Secondary"
+                                               FullWidth="true"
+                                               Href="/auth/register"
+                                               StartIcon="@Icons.Material.Filled.PersonAdd">
+                                        Sign Up
+                                    </MudButton>
+                                </MudItem>
+                            </MudGrid>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>

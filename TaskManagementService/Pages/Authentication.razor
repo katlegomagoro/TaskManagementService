@@ -1,4 +1,4 @@
-﻿@page "/"
+﻿@page "/auth"
 @page "/auth/{Mode?}"
 @namespace TaskManagementService.Pages
 
@@ -8,7 +8,7 @@
 <PageTitle>@PageTitleText</PageTitle>
 
 <MudGrid>
-    <!-- Breadcrumbs - Only show on auth pages, not on root -->
+    <!-- Breadcrumbs -->
     @if (!IsRootPage())
     {
         <MudItem xs="12">
@@ -87,7 +87,7 @@
                             </MudItem>
                         }
 
-                        <!-- Divider - Only show on non-root or when not in landing login mode -->
+                        <!-- Divider  -->
                         @if (!IsRootPage() || !_isLoginMode)
                         {
                             <MudItem xs="12" Class="my-6">

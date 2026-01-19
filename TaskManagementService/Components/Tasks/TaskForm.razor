@@ -1,0 +1,124 @@
+﻿@namespace TaskManagementService.Components.Tasks
+@using MudBlazor
+@using TaskManagementService.DAL.Enums
+@using TaskManagementService.Models.ViewModels
+@using TaskStatusEnum = TaskManagementService.DAL.Enums.TaskStatus
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="@CurrentModel" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary Class="mb-3" />
+
+            <MudGrid>
+                <!-- Title Field  -->
+                <MudItem xs="12" Class="mb-4">
+                    @if (IsCreating)
+                    {
+                        <MudTextField T="string"
+                                      Value="@CreateModel.Title"
+                                      ValueChanged="@(async (string value) => {
+                                          CreateModel.Title = value;
+                                          await InvokeAsync(StateHasChanged);
+                                      })"
+                                      For="@(() => CreateModel.Title)"
+                                      Label="Task Title"
+                                      Required="true"
+                                      RequiredError="Title is required"
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true" />
+                    }
+                    else
+                    {
+                        <MudTextField T="string"
+                                      Value="@EditModel.Title"
+                                      ValueChanged="@(async (string value) => {
+                                          EditModel.Title = value;
+                                          await InvokeAsync(StateHasChanged);
+                                      })"
+                                      For="@(() => EditModel.Title)"
+                                      Label="Task Title"
+                                      Required="true"
+                                      RequiredError="Title is required"
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true" />
+                    }
+                </MudItem>
+
+                <!-- Description Field -->
+                <MudItem xs="12" Class="mb-4">
+                    @if (IsCreating)
+                    {
+                        <MudTextField T="string"
+                                      Value="@CreateModel.Description"
+                                      ValueChanged="@(async (string value) => {
+                                          CreateModel.Description = value;
+                                          await InvokeAsync(StateHasChanged);
+                                      })"
+                                      For="@(() => CreateModel.Description)"
+                                      Label="Description"
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true"
+                                      Lines="3" />
+                    }
+                    else
+                    {
+                        <MudTextField T="string"
+                                      Value="@EditModel.Description"
+                                      ValueChanged="@(async (string value) => {
+                                          EditModel.Description = value;
+                                          await InvokeAsync(StateHasChanged);
+                                      })"
+                                      For="@(() => EditModel.Description)"
+                                      Label="Description"
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true"
+                                      Lines="3" />
+                    }
+                </MudItem>
+
+                <!-- Status Field -->
+                @if (!IsCreating)
+                {
+                    <MudItem xs="12" Class="mb-4">
+                        <MudSelect T="TaskStatusEnum"
+                                   Value="@EditModel.Status"
+                                   ValueChanged="@(async (TaskStatusEnum value) => {
+                                       EditModel.Status = value;
+                                       await InvokeAsync(StateHasChanged);
+                                   })"
+                                   For="@(() => EditModel.Status)"
+                                   Label="Status"
+                                   Variant="Variant.Outlined"
+                                   FullWidth="true">
+                            @foreach (var status in Enum.GetValues<TaskStatusEnum>())
+                            {
+                                <MudSelectItem T="TaskStatusEnum" Value="@status">@status.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+
+                <!-- Action Buttons -->
+                <MudItem xs="12" Class="mt-4 d-flex justify-end">
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Secondary"
+                               OnClick="Cancel"
+                               Class="mr-2">
+                        Cancel
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               ButtonType="ButtonType.Submit"
+                               Disabled="@IsSubmitting">
+                        @if (IsSubmitting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        @(IsCreating ? "Create Task" : "Save Changes")
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
