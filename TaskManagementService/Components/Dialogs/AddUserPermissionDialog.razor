@@ -1,0 +1,56 @@
+﻿@namespace TaskManagementService.Components.Dialogs
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="SearchTerm"
+                      Label="Search Users"
+                      Placeholder="Type user name or email..."
+                      OnDebounceIntervalElapsed="@(async (term) => await OnSearch(term))"
+                      DebounceInterval="300" />
+
+        @if (IsLoading)
+        {
+            <div class="text-center py-4">
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                <MudText Typo="Typo.body2">Searching users...</MudText>
+            </div>
+        }
+        else
+        {
+            <div class="mt-3" style="max-height: 300px; overflow-y: auto;">
+                @if (!FilteredUsers.Any())
+                {
+                    <div class="text-center py-3">
+                        <MudText Typo="Typo.body2" Class="text-muted">No users found</MudText>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var user in FilteredUsers)
+                    {
+                        <MudPaper Class="mb-2 pa-3" Style="cursor: pointer;" OnClick="@(() => SelectUser(user))">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <MudAvatar Size="Size.Small">
+                                        @GetInitials(user.DisplayName)
+                                    </MudAvatar>
+                                </div>
+                                <div>
+                                    <MudText>@user.DisplayName</MudText>
+                                    <MudText Typo="Typo.caption">@user.Email</MudText>
+                                    @if (!string.IsNullOrEmpty(user.FirebaseUid))
+                                    {
+                                        <MudBadge Color="Color.Info" Size="Size.Small">Firebase</MudBadge>
+                                    }
+                                </div>
+                            </div>
+                        </MudPaper>
+                    }
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>

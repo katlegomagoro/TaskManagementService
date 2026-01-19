@@ -1,39 +1,124 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">TaskManagementService</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
+﻿@namespace TaskManagementService.Shared
+@using MudBlazor
+@using TaskManagementService.DAL.Enums
+@using Microsoft.AspNetCore.Authorization
+
+<div>
+    <MudTreeView T="string" ExpandOnClick="true" Hover="true" Dense="true">
+        <!-- Home Section -->
+        <MudTreeViewItem Text="Home"
+                         Icon="@Icons.Material.Filled.Home"
+                         Expanded="@_homeExpanded"
+                         IconColor="Color.Secondary"
+                         OnClick="OnHomeClick">
+        </MudTreeViewItem>
+
+        <!-- Tasks Section -->
+        <AuthorizeView>
+            <Authorized Context="authContext">
+                <MudTreeViewItem Text="Tasks"
+                                 Icon="@Icons.Material.Filled.Checklist"
+                                 IconColor="Color.Secondary"
+                                 Expanded="@_tasksExpanded"
+                                 ExpandedChanged="@(e => _tasksExpanded = e)">
+
+                    <!-- My Tasks - All authenticated users -->
+                    <MudNavLink Href="/tasks" Match="NavLinkMatch.Prefix" Class="d-flex align-items-center ps-3">
+                        <MudIcon Icon="@Icons.Material.Filled.List" Class="me-2" Size="Size.Small" />
+                        My Tasks
+                    </MudNavLink>
+
+                    <!-- All Tasks - Only for SuperAdmin -->
+                    <AuthorizeView>
+                        <Authorized>
+                            @if (_currentUserPermission == PermissionType.SuperAdmin)
+                            {
+                                <MudNavLink Href="/all-tasks" Match="NavLinkMatch.Prefix" Class="d-flex align-items-center ps-3">
+                                    <MudIcon Icon="@Icons.Material.Filled.ViewList" Class="me-2" Size="Size.Small" />
+                                    All Tasks
+                                </MudNavLink>
+                            }
+                        </Authorized>
+                    </AuthorizeView>
+
+                </MudTreeViewItem>
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Administration/Permissions Section - For ALL authenticated users -->
+        <AuthorizeView>
+            <Authorized Context="authContext">
+                <!-- Show Administration section for ALL authenticated users -->
+                <MudTreeViewItem Text="@GetAdministrationText()"
+                                 Icon="@Icons.Material.Filled.AdminPanelSettings"
+                                 IconColor="Color.Secondary"
+                                 Expanded="@_adminExpanded"
+                                 ExpandedChanged="@(e => _adminExpanded = e)">
+
+                    <!-- Permissions link for ALL authenticated users -->
+                    <MudNavLink Href="/ManageUserPermissions" Match="NavLinkMatch.Prefix" Class="d-flex align-items-center ps-3">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Class="me-2" Size="Size.Small" />
+                        @GetPermissionsLinkText()
+                    </MudNavLink>
+
+                    <!-- Additional Admin-only links -->
+                    @if (IsSuperAdmin(authContext.User))
+                    {
+                        <!-- Only SuperAdmin sees additional admin tools -->
+                        <MudNavLink Href="/admin-dashboard" Match="NavLinkMatch.Prefix" Class="d-flex align-items-center ps-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="me-2" Size="Size.Small" />
+                            Admin Dashboard
+                        </MudNavLink>
+                    }
+
+                </MudTreeViewItem>
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- User Profile Section -->
+        <AuthorizeView>
+            <Authorized Context="userAuth">
+                <MudTreeViewItem Text="@GetUserName(userAuth.User)"
+                                 Icon="@Icons.Material.Filled.AccountCircle"
+                                 IconColor="Color.Secondary"
+                                 Expanded="@_profileExpanded"
+                                 ExpandedChanged="@(e => _profileExpanded = e)">
+
+                    <MudNavLink Href="/profile" Match="NavLinkMatch.Prefix" Class="d-flex align-items-center ps-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" Size="Size.Small" />
+                        My Profile
+                    </MudNavLink>
+
+                    <div class="d-flex align-items-center ps-3 py-2" style="cursor: pointer;" @onclick="Logout">
+                        <MudIcon Icon="@Icons.Material.Filled.Logout" Class="me-2" Size="Size.Small" />
+                        <MudText>Logout</MudText>
+                    </div>
+
+                </MudTreeViewItem>
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Not Authenticated Section -->
+        <AuthorizeView>
+            <NotAuthorized>
+                <MudTreeViewItem Text="Authentication"
+                                 Icon="@Icons.Material.Filled.Login"
+                                 IconColor="Color.Secondary"
+                                 Expanded="@_authExpanded"
+                                 ExpandedChanged="@(e => _authExpanded = e)">
+
+                    <MudNavLink Href="/auth" Match="NavLinkMatch.Prefix" Class="d-flex align-items-center ps-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Login" Class="me-2" Size="Size.Small" />
+                        Login
+                    </MudNavLink>
+
+                    <MudNavLink Href="/auth/register" Match="NavLinkMatch.Prefix" Class="d-flex align-items-center ps-3">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="me-2" Size="Size.Small" />
+                        Register
+                    </MudNavLink>
+
+                </MudTreeViewItem>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudTreeView>
 </div>
-
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="oi oi-plus" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fetchdata">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
-@code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
-}

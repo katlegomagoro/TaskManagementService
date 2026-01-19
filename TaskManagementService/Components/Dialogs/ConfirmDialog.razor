@@ -1,0 +1,21 @@
+﻿@namespace TaskManagementService.Components.Dialogs
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Style="color: #673ab7;">
+            @ContentText
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Default"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="@Color"
+                   OnClick="Confirm">
+            @ButtonText
+        </MudButton>
+    </DialogActions>
+</MudDialog>

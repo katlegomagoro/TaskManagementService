@@ -12,6 +12,8 @@ namespace TaskManagementService.Services
     {
         private readonly IDbContextFactory<TaskManagementServiceDbContext> _dbContextFactory;
         private readonly ILogger<AuthenticationService> _logger;
+        private static bool _firstUserCreatedAsSuperAdmin = false;
+        private static readonly object _lock = new object();
 
         public AuthenticationService(
             IDbContextFactory<TaskManagementServiceDbContext> dbContextFactory,
@@ -126,21 +128,24 @@ namespace TaskManagementService.Services
                     return userByEmail;
                 }
 
-                // Create new user with default User permission
+                // Create new user - CHECK IF THIS IS THE FIRST USER
+                var isFirstUser = !await db.AppUsers.AnyAsync();
                 var newUser = new AppUser
                 {
                     FirebaseUid = firebaseUid,
                     Email = email,
                     DisplayName = displayName,
                     CreatedAtUtc = DateTime.UtcNow,
-                    ModifiedAtUtc = DateTime.UtcNow
+                    ModifiedAtUtc = DateTime.UtcNow,
+                    PermissionType = isFirstUser ? PermissionType.SuperAdmin : PermissionType.User
                 };
 
-                // Add default User permission
+                // Add default permission based on whether this is the first user
+                var defaultPermissionType = isFirstUser ? PermissionType.SuperAdmin : PermissionType.User;
                 var userPermission = new UserPermission
                 {
                     AppUser = newUser,
-                    PermissionType = PermissionType.User,
+                    PermissionType = defaultPermissionType,
                     CreatedAtUtc = DateTime.UtcNow
                 };
 
@@ -149,7 +154,14 @@ namespace TaskManagementService.Services
                 db.AppUsers.Add(newUser);
                 await db.SaveChangesAsync();
 
-                _logger.LogInformation("New user created: {Email} with Firebase UID: {FirebaseUid}", email, firebaseUid);
+                if (isFirstUser)
+                {
+                    _logger.LogWarning("FIRST USER CREATED AS SUPERADMIN: {Email}", email);
+                }
+                else
+                {
+                    _logger.LogInformation("New user created: {Email} with Firebase UID: {FirebaseUid}", email, firebaseUid);
+                }
 
                 return await db.AppUsers
                     .Include(u => u.UserPermissions)
@@ -161,6 +173,38 @@ namespace TaskManagementService.Services
                 throw;
             }
         }
+
+        // the UpdateUserProfileAsync method to handle Firebase 
+        public async Task<bool> UpdateUserProfileAsync(int userId, string newDisplayName)
+        {
+            await using var db = await _dbContextFactory.CreateDbContextAsync();
+
+            try
+            {
+                var user = await db.AppUsers.FindAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogWarning("User with ID {UserId} not found for profile update", userId);
+                    return false;
+                }
+
+                // Update local database
+                user.DisplayName = newDisplayName;
+                user.ModifiedAtUtc = DateTime.UtcNow;
+
+                await db.SaveChangesAsync();
+
+                _logger.LogInformation("User profile updated for ID {UserId}: {DisplayName}", userId, newDisplayName);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user profile for ID {UserId}", userId);
+                return false;
+            }
+        }
+
 
         public async Task<bool> IsUserAdminAsync(int userId)
         {

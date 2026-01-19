@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
+using System.Security.Claims;
 using TaskManagementService.Interfaces;
 using TaskManagementService.Models;
+using TaskManagementService.Services;
 
 namespace TaskManagementService.Components.Authentication
 {
@@ -25,6 +28,12 @@ namespace TaskManagementService.Components.Authentication
 
         [Inject]
         private ILogger<Login> Logger { get; set; } = default!;
+
+        [Inject]
+        private CustomAuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+
+        [Inject]
+        private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
         private LoginModel _loginModel = new();
         private bool _isLoading = false;
@@ -62,38 +71,27 @@ namespace TaskManagementService.Components.Authentication
 
             try
             {
-                var firebaseIdToken = await FirebaseAuthClient.LoginAsync(_loginModel.Email, _loginModel.Password);
+                var user = await AuthStateProvider.LoginAsync(_loginModel.Email, _loginModel.Password);
 
-                if (string.IsNullOrEmpty(firebaseIdToken))
+                if (user.Identity?.IsAuthenticated != true)
                 {
                     Snackbar.Add("Invalid email or password", Severity.Error);
-                    _isLoading = false;
-                    StateHasChanged();
                     return;
                 }
 
-                var appUser = await AuthenticationService.GetOrCreateUserFromFirebaseAsync(firebaseIdToken);
+                var displayName = user.FindFirst(ClaimTypes.Name)?.Value ?? "User";
+                var isAdmin = user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
 
-                if (appUser == null)
-                {
-                    Snackbar.Add("Failed to sync user account. Please try again.", Severity.Error);
-                    _isLoading = false;
-                    StateHasChanged();
-                    return;
-                }
+                Snackbar.Add($"Welcome back, {displayName}!", Severity.Success);
 
-                var isAdmin = await AuthenticationService.IsUserAdminAsync(appUser.Id);
+                // CRITICAL: Wait for the authentication state to propagate
+                await Task.Delay(100); // Small delay to ensure state is updated
 
-                Snackbar.Add($"Welcome back, {appUser.DisplayName}!", Severity.Success);
+                // Force a re-evaluation of the authentication state
+                await AuthenticationStateProvider.GetAuthenticationStateAsync();
 
-                if (isAdmin)
-                {
-                    NavigationManager.NavigateTo("/dashboard", true);
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("/tasks", true);
-                }
+                // Navigate after authentication state is properly set
+                NavigationManager.NavigateTo(isAdmin ? "/dashboard" : "/tasks", forceLoad: false);
             }
             catch (Exception ex)
             {

@@ -22,7 +22,7 @@
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
 </head>
 <body>
-    <component type="typeof(App)" render-mode="ServerPrerendered" />
+    <component type="typeof(App)" render-mode="Server" />
 
     <div id="blazor-error-ui">
         <environment include="Staging,Production">
@@ -42,8 +42,9 @@
     <!-- MudBlazor JS -->
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     
-    <!-- Your Firebase auth wrapper -->
+    <!-- Firebase auth wrapper -->
     <script src="firebase-auth.js"></script>
+    <script src="firebase-admin.js"></script>
 
     <script src="_framework/blazor.server.js"></script>
 </body>

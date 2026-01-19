@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 using MudBlazor.Services;
@@ -14,13 +15,11 @@ namespace TaskManagementService
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Serilog
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(builder.Configuration)
                 .CreateLogger();
             builder.Host.UseSerilog();
 
-            // Core services
             builder.Services.AddRazorPages();
             builder.Services.AddServerSideBlazor();
 
@@ -39,11 +38,12 @@ namespace TaskManagementService
                 config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
             });
 
-            // Register Interfaces and Services
+            builder.Services.AddScoped<IPermissionService, PermissionService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IFirebaseUserSearchService, FirebaseUserSearchService>();
             builder.Services.AddScoped<IFirebaseAuthClient, FirebaseAuthClient>();
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-            // Database (EF Core + SQL Server) 
             var connectionString = builder.Configuration.GetConnectionString("TaskManagementServiceDb");
 
             builder.Services.AddDbContext<TaskManagementServiceDbContext>((provider, options) =>
@@ -56,19 +56,27 @@ namespace TaskManagementService
                 options.UseSqlServer(connectionString);
             }, ServiceLifetime.Scoped);
 
-            // Add authentication and authorization
-
+            // Blazor auth (component-level)
             builder.Services.AddCascadingAuthenticationState();
-            builder.Services.AddAuthentication();
-            builder.Services.AddAuthorization();
+
+            // IMPORTANT: Use AuthorizationCore for Blazor components (AuthorizeView / AuthorizeRouteView)
+            builder.Services.AddAuthorizationCore(options =>
+            {
+                options.AddPolicy("SuperAdminOnly", policy => policy.RequireRole("SuperAdmin"));
+                options.AddPolicy("AdminOrAbove", policy => policy.RequireRole("Admin", "SuperAdmin"));
+                options.AddPolicy("AuthenticatedUser", policy => policy.RequireAuthenticatedUser());
+            });
+
+            builder.Services.AddScoped<AuthStatePersistor>();
+            builder.Services.AddScoped<AuthLocalStorageService>();
+            builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+            builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
@@ -77,10 +85,14 @@ namespace TaskManagementService
             app.UseStaticFiles();
             app.UseRouting();
 
-            app.MapBlazorHub();
+            // REMOVE these: you are not setting any ASP.NET auth scheme (cookie/JWT),
+            // and protecting endpoints will break /_blazor connections.
+            // app.UseAuthentication();
+            // app.UseAuthorization();
+
+            app.MapBlazorHub();           
             app.MapFallbackToPage("/_Host");
 
-            // Apply migrations on startup
             using (var scope = app.Services.CreateScope())
             {
                 var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<TaskManagementServiceDbContext>>();
