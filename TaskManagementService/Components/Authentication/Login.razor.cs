@@ -43,19 +43,19 @@ namespace TaskManagementService.Components.Authentication
             _isLoading = false;
         }
 
-        // Handler for email field - non-nullable string
+        // Handler for email field  
         private void HandleEmailChanged(string val)
         {
             _loginModel.Email = val;
         }
 
-        // Handler for password field - non-nullable string  
+        // Handler for password field
         private void HandlePasswordChanged(string val)
         {
             _loginModel.Password = val;
         }
 
-        // Handler for checkbox - non-nullable bool
+        // Handler for checkbox
         private void HandleRememberMeChanged(bool val)
         {
             _loginModel.RememberMe = val;
@@ -63,8 +63,7 @@ namespace TaskManagementService.Components.Authentication
 
         private async Task HandleLogin()
         {
-            if (_isLoading)
-                return;
+            if (_isLoading) return;
 
             _isLoading = true;
             StateHasChanged();
@@ -80,33 +79,26 @@ namespace TaskManagementService.Components.Authentication
                 }
 
                 var displayName = user.FindFirst(ClaimTypes.Name)?.Value ?? "User";
-                var isAdmin = user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
 
                 Snackbar.Add($"Welcome back, {displayName}!", Severity.Success);
 
-                // CRITICAL: Wait for the authentication state to propagate
-                await Task.Delay(100); // Small delay to ensure state is updated
-
-                // Force a re-evaluation of the authentication state
+                // Force authentication state refresh and wait for propagation
                 await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                // delay for state propagation
+                await Task.Delay(200);
 
-                // Navigate after authentication state is properly set
-                NavigationManager.NavigateTo(isAdmin ? "/dashboard" : "/tasks", forceLoad: false);
+                var isAdmin = user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
+                NavigationManager.NavigateTo(isAdmin ? "/all-tasks" : "/tasks", replace: true);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Login failed for email: {Email}", _loginModel.Email);
                 Snackbar.Add("Login failed. Please try again.", Severity.Error);
-                _isLoading = false;
-                StateHasChanged();
             }
             finally
             {
-                if (_isLoading)
-                {
-                    _isLoading = false;
-                    StateHasChanged();
-                }
+                _isLoading = false;
+                StateHasChanged();
             }
         }
 

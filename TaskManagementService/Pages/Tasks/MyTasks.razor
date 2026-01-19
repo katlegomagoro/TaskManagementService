@@ -1,0 +1,359 @@
+﻿@page "/tasks"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@using TaskManagementService.Components.Tasks
+@using TaskManagementService.Components.Dialogs
+@using ViewModels = TaskManagementService.Models.ViewModels
+@using TaskStatusEnum = TaskManagementService.DAL.Enums.TaskStatus
+
+<PageTitle>My Tasks</PageTitle>
+
+<AuthorizeView>
+    <Authorizing>
+        <MudContainer>
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 50vh;">
+                <MudItem>
+                    <div class="d-flex flex-column align-center">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                        <MudText Typo="Typo.h6" Class="mt-4">Loading Tasks...</MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </Authorizing>
+
+    <Authorized>
+        @if (_isLoading)
+        {
+            <MudContainer>
+                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 50vh;">
+                    <MudItem>
+                        <div class="d-flex flex-column align-center">
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                            <MudText Typo="Typo.h6" Class="mt-4">Loading Tasks...</MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudContainer>
+        }
+        else
+        {
+            <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="my-4">
+                <MudPaper Class="pa-4">
+
+                    <!-- Header -->
+                    <MudGrid Justify="Justify.SpaceBetween" AlignItems="Center" Class="mb-4">
+                        <MudItem xs="8">
+                            <MudText Typo="Typo.h4" Style="color: #673ab7; font-weight: bold;">
+                                My Tasks
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Manage your personal tasks
+                            </MudText>
+                        </MudItem>
+
+                        <MudItem xs="4" Class="d-flex justify-end">
+                            @if (_canCreateTasks)
+                            {
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="@(async (MouseEventArgs _) => await OpenCreateDialog())">
+                                    New Task
+                                </MudButton>
+                            }
+                        </MudItem>
+                    </MudGrid>
+
+                    <!-- Stats Summary -->
+                    @if (_stats != null)
+                    {
+                        <MudGrid Class="mb-4">
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Primary">@_stats.TotalTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Tasks</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Info">@_stats.OpenTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Open</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Warning">@_stats.InProgressTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">In Progress</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Success">@_stats.CompletedTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Completed</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Default">@_stats.OnHoldTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">On Hold</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4" lg="2">
+                                <MudPaper Class="pa-3 text-center" Elevation="1">
+                                    <MudText Typo="Typo.h5" Color="Color.Error">@_stats.CancelledTasks</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Cancelled</MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                    }
+
+                    <!-- Filters -->
+                    <MudPaper Class="pa-3 mb-4" Elevation="1">
+                        <MudGrid Spacing="2" AlignItems="Center">
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string"
+                                              Label="Search"
+                                              Value="@_filters.SearchTerm"
+                                              ValueChanged="@(async (string v) => await ApplySearch(v))"
+                                              Immediate="true"
+                                              Clearable="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="3">
+                                <MudSelect T="TaskStatusEnum?"
+                                           Label="Status"
+                                           Value="@_filters.Status"
+                                           ValueChanged="@(async (TaskStatusEnum? v) => await ApplyStatus(v))"
+                                           Clearable="true">
+
+                                    <MudSelectItem T="TaskStatusEnum?" Value="@((TaskStatusEnum?)null)">
+                                        All
+                                    </MudSelectItem>
+
+                                    @foreach (var s in Enum.GetValues<TaskStatusEnum>())
+                                    {
+                                        <MudSelectItem T="TaskStatusEnum?" Value="@((TaskStatusEnum?)s)">
+                                            @s
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="3">
+                                <MudSelect T="int"
+                                           Label="Page Size"
+                                           Value="@_filters.PageSize"
+                                           ValueChanged="@(async (int v) => await ApplyPageSize(v))">
+                                    <MudSelectItem Value="10">10</MudSelectItem>
+                                    <MudSelectItem Value="25">25</MudSelectItem>
+                                    <MudSelectItem Value="50">50</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Bulk Actions -->
+                    @if (_selectedTasks.Any())
+                    {
+                        <MudPaper Class="pa-3 mb-4" Elevation="1">
+                            <div class="d-flex align-center">
+                                <MudText Typo="Typo.body2" Class="mr-3">
+                                    @_selectedTasks.Count task@(_selectedTasks.Count != 1 ? "s" : "") selected
+                                </MudText>
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="@(async (MouseEventArgs _) => await DeleteSelectedTasks())"
+                                           StartIcon="@Icons.Material.Filled.Delete"
+                                           Class="mr-2">
+                                    Delete Selected
+                                </MudButton>
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Secondary"
+                                           Size="Size.Small"
+                                           OnClick="@((MouseEventArgs _) => ClearSelection())">
+                                    Clear Selection
+                                </MudButton>
+                            </div>
+                        </MudPaper>
+                    }
+
+                    <!-- Tasks List -->
+                    @if (_tasks.Any())
+                    {
+                        <MudPaper Class="pa-3" Elevation="1">
+                            @foreach (var task in _tasks)
+                            {
+                                <MudCard Class="mb-3" Elevation="2">
+                                    <MudCardContent>
+                                        <MudGrid AlignItems="AlignItems.Center">
+
+                                            <!-- Selection -->
+                                            <MudItem xs="1">
+                                                @if (_canEditTasks)
+                                                {
+                                                    <MudCheckBox T="bool"
+                                                                 @bind-Value="@task.IsSelected"
+                                                                 Color="Color.Primary" />
+                                                }
+                                            </MudItem>
+
+                                            <!-- Info -->
+                                            <MudItem xs="8">
+                                                <MudText Typo="Typo.h6" Class="mb-1">@task.Title</MudText>
+
+                                                @if (!string.IsNullOrEmpty(task.Description))
+                                                {
+                                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                                        @task.Description
+                                                    </MudText>
+                                                }
+
+                                                <div class="d-flex align-center">
+                                                    <MudChip T="object" Variant="Variant.Filled" Color="@GetStatusColor(task.Status)" Class="mr-2">
+                                                        <MudIcon Icon="@task.StatusIcon" Class="mr-1" Size="Size.Small" />
+                                                        @task.Status
+                                                    </MudChip>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        Created: @task.CreatedAtUtc.ToString("MMM dd, yyyy")
+                                                    </MudText>
+                                                </div>
+                                            </MudItem>
+
+                                            <!-- Actions -->
+                                            <MudItem xs="3" Class="d-flex justify-end">
+                                                <MudButtonGroup>
+                                                    @if (_canEditTasks)
+                                                    {
+                                                        <MudTooltip Text="Edit Task">
+                                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                                           Color="Color.Primary"
+                                                                           Size="Size.Small"
+                                                                           OnClick="@(async (MouseEventArgs _) => await OpenEditDialog(task))" />
+                                                        </MudTooltip>
+                                                    }
+
+                                                    @if (_canDeleteTasks)
+                                                    {
+                                                        <MudTooltip Text="Delete Task">
+                                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                                           Color="Color.Error"
+                                                                           Size="Size.Small"
+                                                                           OnClick="@(async (MouseEventArgs _) => await DeleteTask(task))" />
+                                                        </MudTooltip>
+                                                    }
+
+                                                    @if (_canEditTasks && task.Status != TaskStatusEnum.Completed)
+                                                    {
+                                                        <MudTooltip Text="Mark as Completed">
+                                                            <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                                                           Color="Color.Success"
+                                                                           Size="Size.Small"
+                                                                           OnClick="@(async (MouseEventArgs _) => await UpdateTaskStatus(task, TaskStatusEnum.Completed))" />
+                                                        </MudTooltip>
+                                                    }
+                                                </MudButtonGroup>
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudCardContent>
+                                </MudCard>
+                            }
+
+                            <!-- Pagination -->
+                            @if (_totalItems > _filters.PageSize)
+                            {
+                                <div class="d-flex justify-center mt-4">
+                                    <MudPagination Count="@((int)Math.Ceiling((double)_totalItems / _filters.PageSize))"
+                                                   BoundaryCount="2"
+                                                   Selected="@_filters.Page"
+                                                   SelectedChanged="@OnPageChanged" />
+                                </div>
+                            }
+                        </MudPaper>
+                    }
+                    else
+                    {
+                        <MudPaper Class="pa-6 text-center" Elevation="1">
+                            <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-3">
+                                <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Large" />
+                            </MudAvatar>
+
+                            <MudText Typo="Typo.h6" Class="mb-2">No Tasks Found</MudText>
+
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                                @(string.IsNullOrEmpty(_filters.SearchTerm)
+                                    ? "You don't have any tasks yet. Create your first task!"
+                                    : "No tasks match your search criteria.")
+                            </MudText>
+
+                            @if (_canCreateTasks)
+                            {
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           OnClick="@(async (MouseEventArgs _) => await OpenCreateDialog())"
+                                           StartIcon="@Icons.Material.Filled.Add">
+                                    Create Your First Task
+                                </MudButton>
+                            }
+                        </MudPaper>
+                    }
+
+                    <!-- Completion Progress -->
+                    @if (_stats?.TotalTasks > 0)
+                    {
+                        <MudPaper Class="pa-3 mt-4" Elevation="1">
+                            <MudGrid>
+                                <MudItem xs="12" Class="mb-2">
+                                    <MudText Typo="Typo.body1" Color="Color.Secondary">
+                                        Completion Progress
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudProgressLinear Value="@((double)_stats.CompletionRate)"
+                                                       Color="Color.Success"
+                                                       Class="mb-1" />
+                                    <div class="d-flex justify-space-between">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @_stats.CompletionRate.ToString("0.##")% Complete
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @_stats.CompletedTasks of @_stats.TotalTasks tasks
+                                        </MudText>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    }
+                </MudPaper>
+            </MudContainer>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <MudContainer>
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 70vh;">
+                <MudItem>
+                    <MudPaper Class="pa-6" Elevation="10">
+                        <MudText Typo="Typo.h5" Color="Color.Error" Class="text-center mb-4">
+                            ⚠️ Access Denied
+                        </MudText>
+                        <MudText Typo="Typo.body1" Class="text-center mb-4">
+                            You must be logged in to view your tasks.
+                        </MudText>
+                        <div class="text-center mt-4">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Href="/auth"
+                                       StartIcon="@Icons.Material.Filled.Login">
+                                Login
+                            </MudButton>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>

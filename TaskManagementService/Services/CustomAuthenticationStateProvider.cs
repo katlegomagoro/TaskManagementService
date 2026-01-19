@@ -14,6 +14,9 @@ namespace TaskManagementService.Services
         private readonly AuthStatePersistor _authStatePersistor;
         private readonly AuthLocalStorageService _authLocalStorageService;
 
+        // Add this field for unauthenticated state
+        private readonly Task<AuthenticationState> _unauthenticatedTask;
+
         public CustomAuthenticationStateProvider(
             IFirebaseAuthClient firebaseAuthClient,
             IAuthenticationService authenticationService,
@@ -28,6 +31,10 @@ namespace TaskManagementService.Services
             _permissionService = permissionService;
             _authStatePersistor = authStatePersistor;
             _authLocalStorageService = authLocalStorageService;
+
+            // Initialize unauthenticated task
+            _unauthenticatedTask = Task.FromResult(
+                new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())));
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -56,7 +63,7 @@ namespace TaskManagementService.Services
                 if (string.IsNullOrEmpty(idToken))
                 {
                     _logger.LogDebug("No Firebase token found - user is not authenticated");
-                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                    return await _unauthenticatedTask;
                 }
 
                 // Get or create user from Firebase token
@@ -65,7 +72,7 @@ namespace TaskManagementService.Services
                 if (appUser == null)
                 {
                     _logger.LogWarning("Failed to get/create user from Firebase token");
-                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                    return await _unauthenticatedTask;
                 }
 
                 // Create claims principal
@@ -85,12 +92,12 @@ namespace TaskManagementService.Services
             {
                 // Handle prerendering gracefully
                 _logger.LogDebug("Prerendering - returning empty authentication state");
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                return await _unauthenticatedTask;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting authentication state");
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                return await _unauthenticatedTask;
             }
         }
 
@@ -125,9 +132,8 @@ namespace TaskManagementService.Services
                 _authStatePersistor.SetUser(user);
                 await _authLocalStorageService.SaveAuthStateAsync(user);
 
-                // CRITICAL: Create a new task to notify
-                var authState = new AuthenticationState(user);
-                NotifyAuthenticationStateChanged(Task.FromResult(authState));
+                // CRITICAL: Notify authentication state change
+                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
 
                 _logger.LogInformation("User logged in successfully: {Email}", email);
 
@@ -150,22 +156,30 @@ namespace TaskManagementService.Services
                 _authStatePersistor.ClearUser();
                 await _authLocalStorageService.ClearAuthStateAsync();
 
-                // Create empty claims principal
-                var user = new ClaimsPrincipal(new ClaimsIdentity());
+                // IMPORTANT: Create a new empty user
+                var emptyUser = new ClaimsPrincipal(new ClaimsIdentity());
+
+                // Clear any in-memory cache
+                _authStatePersistor.SetUser(emptyUser);
 
                 // Notify authentication state change
-                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+                NotifyAuthenticationStateChanged(_unauthenticatedTask);
 
                 _logger.LogInformation("User logged out");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Logout failed");
+
+                // Even if Firebase logout fails, clear local state
+                _authStatePersistor.ClearUser();
+                await _authLocalStorageService.ClearAuthStateAsync();
+                NotifyAuthenticationStateChanged(_unauthenticatedTask);
+
                 throw;
             }
         }
 
-        // Helper method to update user profile
         // Helper method to update user profile
         public async Task UpdateUserProfileAsync(int userId, string newDisplayName)
         {
@@ -237,6 +251,13 @@ namespace TaskManagementService.Services
             return ex is InvalidOperationException &&
                    ex.Message.Contains("JavaScript interop calls cannot be issued") &&
                    ex.Message.Contains("prerendering");
+        }
+
+        //  method to force refresh authentication state
+        public async Task ForceRefreshAuthenticationStateAsync()
+        {
+            var authState = await GetAuthenticationStateAsync();
+            NotifyAuthenticationStateChanged(Task.FromResult(authState));
         }
     }
 }

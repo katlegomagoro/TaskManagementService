@@ -16,6 +16,12 @@ namespace TaskManagementService.DAL.Enums
         InProgress = 2,
 
         [EnumMember(Value = "Completed")]
-        Completed = 3
+        Completed = 3,
+
+        [EnumMember(Value = "On Hold")]
+        OnHold = 4,
+
+        [EnumMember(Value = "Cancelled")]
+        Cancelled = 5
     }
 }

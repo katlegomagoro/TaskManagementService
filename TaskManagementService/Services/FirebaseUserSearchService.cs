@@ -8,8 +8,9 @@ namespace TaskManagementService.Services
 {
     public class FirebaseUserSearchService : IFirebaseUserSearchService
     {
-        private readonly FirebaseAuth _firebaseAuth;
+        private readonly FirebaseAuth? _firebaseAuth;
         private readonly ILogger<FirebaseUserSearchService> _logger;
+        private readonly bool _isFirebaseInitialized;
 
         public FirebaseUserSearchService(ILogger<FirebaseUserSearchService> logger)
         {
@@ -22,39 +23,44 @@ namespace TaskManagementService.Services
 
                 if (firebaseApp == null)
                 {
-                    _logger.LogError("FirebaseApp is not initialized. Check Program.cs setup.");
-                    throw new InvalidOperationException("Firebase is not initialized. Call FirebaseApp.Create() in Program.cs first.");
+                    _logger.LogWarning("FirebaseApp is not initialized. Firebase user search will be disabled.");
+                    _isFirebaseInitialized = false;
+                    _firebaseAuth = null;
                 }
-
-                _firebaseAuth = FirebaseAuth.GetAuth(firebaseApp);
-                _logger.LogInformation("FirebaseUserSearchService initialized successfully");
+                else
+                {
+                    _firebaseAuth = FirebaseAuth.GetAuth(firebaseApp);
+                    _isFirebaseInitialized = true;
+                    _logger.LogInformation("FirebaseUserSearchService initialized successfully");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to initialize FirebaseUserSearchService");
-                throw;
+                _isFirebaseInitialized = false;
+                _firebaseAuth = null;
             }
         }
 
         public async Task<List<AppUser>> SearchFirebaseUsersAsync(string searchTerm)
         {
+            if (!_isFirebaseInitialized || _firebaseAuth == null)
+            {
+                _logger.LogWarning("Firebase not initialized. Returning empty list.");
+                return new List<AppUser>();
+            }
+
             var users = new List<AppUser>();
 
             try
             {
-                if (_firebaseAuth == null)
-                {
-                    _logger.LogWarning("FirebaseAuth is not available");
-                    return users;
-                }
-
                 var allFirebaseUsers = await GetAllFirebaseUserRecordsAsync();
 
                 // Filter based on search term
                 if (string.IsNullOrWhiteSpace(searchTerm))
                 {
                     users = allFirebaseUsers
-                        .Take(100) 
+                        .Take(100)
                         .Select(ConvertToAppUser)
                         .ToList();
                 }
@@ -65,7 +71,7 @@ namespace TaskManagementService.Services
                             (u.Email?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
                             (u.DisplayName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
                             (u.PhoneNumber?.Contains(searchTerm) ?? false))
-                        .Take(50) 
+                        .Take(50)
                         .Select(ConvertToAppUser)
                         .ToList();
                 }

@@ -17,19 +17,31 @@ namespace TaskManagementService.Services
     {
         private readonly IDbContextFactory<TaskManagementServiceDbContext> _dbContextFactory;
         private readonly IFirebaseUserSearchService _firebaseUserSearchService;
+        private readonly ILogger<UserService> _logger;
 
         public UserService(
             IDbContextFactory<TaskManagementServiceDbContext> dbContextFactory,
-            IFirebaseUserSearchService firebaseUserSearchService)
+            IFirebaseUserSearchService firebaseUserSearchService,
+            ILogger<UserService> logger)
         {
             _dbContextFactory = dbContextFactory;
             _firebaseUserSearchService = firebaseUserSearchService;
+            _logger = logger;
         }
 
         public async Task<List<AppUser>> SearchUsersAsync(string searchTerm)
         {
             var dbUsers = await SearchDatabaseUsersAsync(searchTerm);
-            var firebaseUsers = await _firebaseUserSearchService.SearchFirebaseUsersAsync(searchTerm);
+
+            List<AppUser> firebaseUsers = new();
+            try
+            {
+                firebaseUsers = await _firebaseUserSearchService.SearchFirebaseUsersAsync(searchTerm);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Firebase search failed. Continuing with database users only.");
+            }
 
             // Combine and deduplicate by email
             var allUsers = new Dictionary<string, AppUser>();

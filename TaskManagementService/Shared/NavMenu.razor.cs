@@ -131,11 +131,11 @@ namespace TaskManagementService.Shared
             try
             {
                 var parameters = new DialogParameters<ConfirmDialog>
-                {
-                    { x => x.ContentText, "Are you sure you want to logout?" },
-                    { x => x.ButtonText, "Yes, Logout" },
-                    { x => x.Color, Color.Error }
-                };
+        {
+            { x => x.ContentText, "Are you sure you want to logout?" },
+            { x => x.ButtonText, "Yes, Logout" },
+            { x => x.Color, Color.Error }
+        };
 
                 var options = new DialogOptions
                 {
@@ -149,15 +149,23 @@ namespace TaskManagementService.Shared
 
                 if (!result.Canceled && result.Data is bool confirm && confirm)
                 {
-                    await AuthStateProvider.LogoutAsync(); // clears persistor + notifies
-                    NavigationManager.NavigateTo("/");     // no forceLoad
+                    await AuthStateProvider.LogoutAsync();
+
+                    // Force a small delay to ensure state is cleared
+                    await Task.Delay(100);
+
+                    // Force a refresh of the authentication state
+                    await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+                    // Navigate to home page with replace to clear history
+                    NavigationManager.NavigateTo("/", replace: true);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during logout: {ex.Message}");
-                await AuthStateProvider.LogoutAsync();
-                NavigationManager.NavigateTo("/");
+                // Force navigation anyway
+                NavigationManager.NavigateTo("/", true);
             }
         }
     }
